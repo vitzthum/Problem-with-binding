@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">RingtoneScheduler</string>
+    
+    <string-array name="ringeMode">
+        <item>Lautlos</item>
+        <item>Vibration</item>
+        <item>Laut</item>
+    </string-array>
+
+    
+</resources>
