@@ -1,36 +1,30 @@
 package com.vitzi.ringtonescheduler;
 
 import android.app.*;
-import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
-import android.os.Handler;
-import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
-import android.widget.Spinner;
-import android.widget.TextView;
+import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TimePicker;
 import android.widget.Toast;
+
+import java.util.Calendar;
+import java.util.List;
+
+import static com.vitzi.ringtonescheduler.R.layout.event;
 
 
 public class MainActivity extends AppCompatActivity {
 
+	static Schedule schedule;
 	AudioManager audioManager;
-
-	int beginHour, beginMinute, endHour, endMinute;
-	TimePicker beginTimePicker;
-	TextView beginTextView;
-	TimePicker endTimePicker;
-	TextView endTextView;
-
-	Spinner beginModeSpinner;
-
-	int inMinutes, inHours;
+	LinearLayout layout;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -39,78 +33,101 @@ public class MainActivity extends AppCompatActivity {
 
 		audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
-		Intent intent = new Intent(this, Service.class);
-		final PendingIntent pendingIntent = PendingIntent.getService(this, 0, intent, 0);
-		final AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+		schedule = new Schedule();
+		Event event = new Event("Test1", Calendar.getInstance(), Calendar.getInstance());
+		Event event2 = new Event("Test2", Calendar.getInstance(), Calendar.getInstance());
+		schedule.put(event.getId(), event);
+		schedule.put(event2.getId(), event2);
 
+		ArrayAdapter<Event> adapter = new ArrayAdapter<Event>(MainActivity.this, R.layout.event, R.id.eventTextView, schedule.values().toArray(new Event[0]));
+
+		ListView listView;
+		listView = (ListView) findViewById(R.id.eventsListView);
+
+		listView.setAdapter(adapter);
+
+		findViewById(R.id.addButton).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(MainActivity.this, NewEvent.class);
+				startActivity(intent);
+			}
+		});
+
+/*
+		// new Event
+		findViewById(R.id.newButton).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				final TimePickerDialog beginDialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+					@Override
+					public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+						Calendar beginCalendar = Calendar.getInstance();
+						beginCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+						beginCalendar.set(Calendar.MINUTE, minute);
+						beginCalendar.set(Calendar.SECOND, 0);
+
+						final TimePickerDialog endDialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
+							@Override
+							public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+								Calendar endCalendar = Calendar.getInstance();
+								endCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+								endCalendar.set(Calendar.MINUTE, minute);
+								endCalendar.set(Calendar.SECOND, 0);
+							}
+						}, Calendar.getInstance().get(Calendar.HOUR_OF_DAY), Calendar.getInstance().get(Calendar.MINUTE), true);
+
+						endDialog.show();
+					}
+				}, Calendar.getInstance().get(Calendar.HOUR_OF_DAY), Calendar.getInstance().get(Calendar.MINUTE), true);
+				beginDialog.show();
+			}
+		});
+
+
+		// start
 		findViewById(R.id.startButton).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 5 * 1000, 60 * 1000, pendingIntent);
-				Log.d("Log", "Alarm set");
-				Toast.makeText(getApplicationContext(), "Alarm set", Toast.LENGTH_LONG).show();
-			}
-		});
-
-		findViewById(R.id.endButton).setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				alarmManager.cancel(pendingIntent);
-				Log.d("Log", "Alarm canceled");
-				Toast.makeText(getApplicationContext(), "Alarm canceld", Toast.LENGTH_LONG).show();
-			}
-		});
-
-/*
-		beginModeSpinner = (Spinner) findViewById(R.id.beginModeSpinner);
-
-		beginTextView = (TextView) findViewById(R.id.beginTextView);
-		endTextView = (TextView) findViewById(R.id.beginTextView);
-
-		beginTimePicker = (TimePicker) findViewById(R.id.beginTimePicker);
-		beginTimePicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
-
-			@Override
-			public void onTimeChanged(TimePicker view, int hourOfDay, int minute) {
-				beginHour = hourOfDay;
-				beginMinute = minute;
-			}
-		});
-*/
-	}
-
-	private void doToastAt() {
-
-/*
-		final Handler handler = new Handler();
-		handler.postAtTime(new Runnable() {
-			@Override
-			public void run() {
-				switch (beginModeSpinner.getSelectedItemPosition()) {
-					case 0:
-						audioManager.setRingerMode(AudioManager.RINGER_MODE_SILENT);
-						break;
-					case 1:
-						audioManager.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
-						break;
-					case 2:
-						audioManager.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
-						break;
-					default:
-						Toast.makeText(MainActivity.this, "no RingerMode", Toast.LENGTH_SHORT).show();
-						break;
+				if (schedule.hasEvent()) {
+					Intent intent = new Intent(getApplicationContext(), Service.class);
+					intent.setAction("START");
+					startService(intent);
+					Log.d("Log", Schedule.currentInstance.toString());
+					Log.d("Log", "----- Service started -----");
+				} else {
+					Toast.makeText(MainActivity.this, "no Event set", Toast.LENGTH_SHORT).show();
+					Log.d("Log", "Schedule has no Event");
 				}
-				Toast.makeText(MainActivity.this, "RingerMode ist: " + audioManager.getRingerMode(), Toast.LENGTH_SHORT).show();
 			}
-		}, SystemClock.uptimeMillis() + inMinutes * 60 * 1000);
+		});
 */
+
 	}
 
-	@Override
-	protected void onPause() {
-		super.onPause();
+	public void add() {
+/*
+		if(schedule.push(new Event(beginCalendar, endCalendar)))
+			Toast.makeText(MainActivity.this, "Event added", Toast.LENGTH_SHORT).show();
+		else
+			Toast.makeText(MainActivity.this, "Event not added", Toast.LENGTH_SHORT).show();
+		Log.d("Log", schedule.toString());
 
-		JobScheduler tm = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
-		tm.cancelAll();
+		LinearLayout linearLayout = new LinearLayout(MainActivity.this);
+		linearLayout.setOrientation(LinearLayout.VERTICAL);
+
+		EventView linearLayout = new EventView(MainActivity.this);
+
+		TextView textView = new TextView(MainActivity.this);
+		textView.setText("Begin:");
+
+		TextView eventView = new TextView(MainActivity.this);
+		eventView.setText("Zeit");
+
+		linearLayout.addView(textView);
+		linearLayout.addView(eventView);
+		layout.addView(linearLayout);
+*/
+
 	}
 }
