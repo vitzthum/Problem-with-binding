@@ -11,6 +11,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
@@ -24,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
 
 	static Schedule schedule;
 	AudioManager audioManager;
-	LinearLayout layout;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -34,17 +34,27 @@ public class MainActivity extends AppCompatActivity {
 		audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
 		schedule = new Schedule();
-		Event event = new Event("Test1", Calendar.getInstance(), Calendar.getInstance());
-		Event event2 = new Event("Test2", Calendar.getInstance(), Calendar.getInstance());
-		schedule.put(event.getId(), event);
-		schedule.put(event2.getId(), event2);
+		schedule.setListener(new Schedule.ScheduleListener() {
+			@Override
+			public void onTest() {
+				Log.d("Log", "Test");
+			}
 
-		ArrayAdapter<Event> adapter = new ArrayAdapter<Event>(MainActivity.this, R.layout.event, R.id.eventTextView, schedule.values().toArray(new Event[0]));
+			@Override
+			public void onNextEventChanged(Event newNextEvent) {
 
-		ListView listView;
-		listView = (ListView) findViewById(R.id.eventsListView);
+			}
+		});
 
-		listView.setAdapter(adapter);
+		if(!schedule.isEmpty()) {
+			findViewById(R.id.noEventTextView).setVisibility(View.GONE);
+
+			ArrayAdapter<Event> adapter = new ArrayAdapter<Event>(MainActivity.this, R.layout.event, R.id.eventTextView, schedule.getSortedArray());
+
+			ListView listView = (ListView) findViewById(R.id.eventsListView);
+			listView.setVisibility(View.VISIBLE);
+			listView.setAdapter(adapter);
+		}
 
 		findViewById(R.id.addButton).setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -54,80 +64,63 @@ public class MainActivity extends AppCompatActivity {
 			}
 		});
 
-/*
-		// new Event
-		findViewById(R.id.newButton).setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				final TimePickerDialog beginDialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-					@Override
-					public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-						Calendar beginCalendar = Calendar.getInstance();
-						beginCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-						beginCalendar.set(Calendar.MINUTE, minute);
-						beginCalendar.set(Calendar.SECOND, 0);
-
-						final TimePickerDialog endDialog = new TimePickerDialog(MainActivity.this, new TimePickerDialog.OnTimeSetListener() {
-							@Override
-							public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-								Calendar endCalendar = Calendar.getInstance();
-								endCalendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-								endCalendar.set(Calendar.MINUTE, minute);
-								endCalendar.set(Calendar.SECOND, 0);
-							}
-						}, Calendar.getInstance().get(Calendar.HOUR_OF_DAY), Calendar.getInstance().get(Calendar.MINUTE), true);
-
-						endDialog.show();
-					}
-				}, Calendar.getInstance().get(Calendar.HOUR_OF_DAY), Calendar.getInstance().get(Calendar.MINUTE), true);
-				beginDialog.show();
-			}
-		});
-
-
 		// start
 		findViewById(R.id.startButton).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				if (schedule.hasEvent()) {
+				if (schedule.isEmpty()) {
+					Toast.makeText(MainActivity.this, "no Event set", Toast.LENGTH_SHORT).show();
+				} else {
 					Intent intent = new Intent(getApplicationContext(), Service.class);
 					intent.setAction("START");
 					startService(intent);
-					Log.d("Log", Schedule.currentInstance.toString());
-					Log.d("Log", "----- Service started -----");
-				} else {
-					Toast.makeText(MainActivity.this, "no Event set", Toast.LENGTH_SHORT).show();
-					Log.d("Log", "Schedule has no Event");
+					Toast.makeText(MainActivity.this, "started", Toast.LENGTH_SHORT).show();
 				}
 			}
 		});
-*/
 
+		// update
+		findViewById(R.id.updateButton).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				onResume();
+			}
+		});
 	}
 
-	public void add() {
-/*
-		if(schedule.push(new Event(beginCalendar, endCalendar)))
-			Toast.makeText(MainActivity.this, "Event added", Toast.LENGTH_SHORT).show();
-		else
-			Toast.makeText(MainActivity.this, "Event not added", Toast.LENGTH_SHORT).show();
-		Log.d("Log", schedule.toString());
+	@Override
+	protected void onResume() {
+		super.onResume();
 
-		LinearLayout linearLayout = new LinearLayout(MainActivity.this);
-		linearLayout.setOrientation(LinearLayout.VERTICAL);
+		if(!schedule.isEmpty()) {
+			findViewById(R.id.noEventTextView).setVisibility(View.GONE);
 
-		EventView linearLayout = new EventView(MainActivity.this);
+			// update events ListView
+			ArrayAdapter<Event> adapter = new ArrayAdapter<Event>(MainActivity.this, R.layout.event, R.id.eventTextView, schedule.getSortedArray());
+			ListView listView = (ListView) findViewById(R.id.eventsListView);
+			listView.setVisibility(View.VISIBLE);
+			listView.setAdapter(adapter);
+			findViewById(R.id.eventsTextView).setVisibility(View.VISIBLE);
 
-		TextView textView = new TextView(MainActivity.this);
-		textView.setText("Begin:");
+			// update current event TextView
+			TextView currentEventEventTextView = (TextView) findViewById(R.id.currentEventEventTextView);
+			schedule.updateCurrentEvent();
+			Event currentEvent = schedule.getCurrentEvent();
+			if(currentEvent == null)
+				currentEventEventTextView.setText("no current Event");
+			else
+				currentEventEventTextView.setText(schedule.getCurrentEvent().toString());
 
-		TextView eventView = new TextView(MainActivity.this);
-		eventView.setText("Zeit");
-
-		linearLayout.addView(textView);
-		linearLayout.addView(eventView);
-		layout.addView(linearLayout);
-*/
-
+			// update next event TextView
+			TextView nextEventEventTextView = (TextView) findViewById(R.id.nextEventEventTextView);
+			schedule.updateNextEvent();
+			Event nextEvent = schedule.getNextEvent();
+			if(nextEvent == null) {
+				nextEventEventTextView.setText("no next Event");
+			}
+			else {
+				nextEventEventTextView.setText(schedule.getNextEvent().toString());
+			}
+		}
 	}
 }

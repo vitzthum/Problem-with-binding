@@ -3,37 +3,32 @@ package com.vitzi.ringtonescheduler;
 import android.media.AudioManager;
 
 import java.util.Calendar;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Event {
 
+	static int nextId = 0;
+
 	String name;
+	private int id;
+
 	private Calendar beginCalendar;
 	private Calendar endCalender;
-	private boolean isActive = false;
+	private int everyXDay;
+
 	private int duringRingerMode;
 	private int afterRingerMode;
 
-	static int nextId = 0;
-	private int id;
-
-	public Event(String name, Calendar beginCalendar, Calendar endCalender) {
+	public Event(String name, Calendar beginCalendar, Calendar endCalender, int everyXDay) {
 		this.name = name;
 		id = nextId++;
 
 		this.beginCalendar = beginCalendar;
 		this.endCalender = endCalender;
+		this.everyXDay = everyXDay;
+
 		duringRingerMode = AudioManager.RINGER_MODE_SILENT;
 		afterRingerMode = AudioManager.RINGER_MODE_VIBRATE;
 
-	}
-
-	public boolean isActive() {
-		return isActive;
-	}
-
-	public void setActive() {
-		isActive = true;
 	}
 
 	public int getDuringRingerMode() {
@@ -56,22 +51,49 @@ public class Event {
 		return id;
 	}
 
+	public void setBeginCalendar(Calendar beginCalendar) {
+		this.beginCalendar = beginCalendar;
+	}
+
+	public void setEndCalendar(Calendar endCalender) {
+		this.endCalender = endCalender;
+	}
+
+	public int getEveryXDay() {
+		return everyXDay;
+	}
+
+	public static String calendarToString(Calendar calendar) {
+		String string = "";
+		string += calendar.get(Calendar.DAY_OF_MONTH);
+		string += ". ";
+		string += calendar.get(Calendar.MONTH);
+		string += ".";
+//		string += calendar.get(Calendar.YEAR);
+		string += ", ";
+		string += calendar.get(Calendar.HOUR_OF_DAY);
+		string += ":";
+		string += calendar.get(Calendar.MINUTE);
+
+		return  string;
+	}
+
 	@Override
 	public String toString() {
 		String string = "Event {";
 		string += "id: " + id;
 		string += ", ";
-		string += "name: " + name;
+//		string += "name: " + name;
+//		string += ", ";
+		string += "everyXDay: " + everyXDay;
 		string += ", ";
-		string += "beginTime: " + beginCalendar.get(Calendar.HOUR_OF_DAY) + ":" + beginCalendar.get(Calendar.MINUTE);
+		string += "beginTime: " + calendarToString(getBeginCalendar());
 		string += ", ";
-		string += "endTime: " + endCalender.get(Calendar.HOUR_OF_DAY) + ":" + endCalender.get(Calendar.MINUTE);
-		string += ", ";
-		string += "duringRingerMode: " + duringRingerMode;
-		string += ", ";
-		string += "afterRingerMode: " + afterRingerMode;
-		string += ", ";
-		string += "isActive: " + isActive;
+		string += "endTime: " + calendarToString(getEndCalender());
+//		string += ", ";
+//		string += "duringRingerMode: " + duringRingerMode;
+//		string += ", ";
+//		string += "afterRingerMode: " + afterRingerMode;
 		string += "}";
 		return string;
 	}
